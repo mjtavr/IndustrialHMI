@@ -1,4 +1,6 @@
+
 package com.example.industrialhmi
+
 import android.app.Activity
 import android.os.Bundle
 import android.view.View
@@ -9,26 +11,459 @@ import android.graphics.RectF
 import android.graphics.Color
 import android.graphics.Typeface
 import kotlin.math.*
-class MainActivity:Activity(){ override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState); window.decorView.systemUiVisibility=5894 or 1024 or 512 or 4096; setContentView(Hmi(this))}}
-class Hmi(ctx:Context):View(ctx){
- val p=Paint(3); val bg=Color.rgb(23,29,35); val pane=Color.rgb(32,40,47); val edge=Color.rgb(91,106,115); val white=Color.rgb(230,235,237); val mute=Color.rgb(151,164,171); val blue=Color.rgb(0,153,220); val yellow=Color.rgb(244,190,35); val green=Color.rgb(75,181,112); val red=Color.rgb(207,65,55)
- fun set(c:Int,w:Float=1f,s:Paint.Style=Paint.Style.FILL){p.color=c;p.strokeWidth=w;p.style=s;p.strokeCap=Paint.Cap.ROUND}
- fun txt(c:Canvas,t:String,x:Float,y:Float,z:Float,col:Int,b:Boolean=false){set(col);p.textSize=z;p.typeface=if(b) Typeface.DEFAULT_BOLD else Typeface.DEFAULT;c.drawText(t,x,y,p)}
- fun rect(c:Canvas,l:Float,t:Float,r:Float,b:Float,col:Int,stroke:Int?=null){set(col);c.drawRoundRect(RectF(l,t,r,b),5f,5f,p);if(stroke!=null){set(stroke,1.4f,Paint.Style.STROKE);c.drawRoundRect(RectF(l,t,r,b),5f,5f,p)}}
- override fun onDraw(c:Canvas){super.onDraw(c);c.save();c.scale(width/800f,height/480f);c.drawColor(bg)
- rect(c,8f,7f,792f,39f,pane,edge);txt(c,"14:37:25",22f,29f,17f,white,true);txt(c,"SANGINKAR SANAT.CO",310f,28f,17f,white,true);txt(c,"2024-04-30  Tue",610f,28f,14f,mute);rect(c,746f,13f,780f,32f,green);txt(c,"OK",752f,27f,12f,Color.WHITE,true)
- gauge(c,204f,237f,180f,"HORIZONTAL",-180,180,true);gauge(c,424f,237f,180f,"VERTICAL",-30,90,false)
- level(c,650f,"WATER",75,blue);level(c,750f,"FOAM",50,yellow)
- rect(c,10f,458f,790f,474f,pane,edge);txt(c,"SYSTEM READY",22f,470f,10f,green,true);txt(c,"DEMO VALUES",674f,470f,10f,mute,true);c.restore()}
- fun gauge(c:Canvas,x:Float,y:Float,r:Float,title:String,min:Int,max:Int,full:Boolean){
- rect(c,x-r-9,48f,x+r+9,449f,pane,edge);set(edge,1f,Paint.Style.STROKE);c.drawCircle(x,y,r-10,p)
- val start=if(full)135f else 180f;val sweep=if(full)270f else 180f;val aRect=RectF(x-r+8,y-r+8,x+r-8,y+r-8)
- set(green,7f,Paint.Style.STROKE);c.drawArc(aRect,start,sweep*.68f,false,p);set(yellow,7f,Paint.Style.STROKE);c.drawArc(aRect,start+sweep*.68f,sweep*.18f,false,p);set(red,7f,Paint.Style.STROKE);c.drawArc(aRect,start+sweep*.86f,sweep*.14f,false,p)
- val n=if(full)24 else 12
- for(i in 0..n){val a=Math.toRadians((start+sweep*i/n).toDouble());val inn=r-28f;val out=r-12f;set(if(i%2==0)white else mute,if(i%2==0)2f else 1f);c.drawLine(x+cos(a).toFloat()*inn,y+sin(a).toFloat()*inn,x+cos(a).toFloat()*out,y+sin(a).toFloat()*out,p);if(i%2==0){val v=min+(max-min)*i/n;txt(c,"$v",x+cos(a).toFloat()*(r-48f)-8f,y+sin(a).toFloat()*(r-48f)+4f,10f,mute)}}
- val na=Math.toRadians(if(full)270.0 else 180.0);set(red,4f);c.drawLine(x,y,x+cos(na).toFloat()*(r-42f),y+sin(na).toFloat()*(r-42f),p);set(white);c.drawCircle(x,y,8f,p);set(Color.DKGRAY);c.drawCircle(x,y,3f,p)
- rect(c,x-43f,y+48f,x+43f,y+77f,Color.rgb(12,17,21),edge);txt(c,"0.0°",x-27f,y+68f,18f,white,true);rect(c,x-63f,414f,x+63f,438f,Color.rgb(44,55,63),edge);txt(c,title,x-48f,431f,12f,white,true)}
- fun level(c:Canvas,x:Float,title:String,percent:Int,col:Int){txt(c,title,x-24f,30f,12f,white,true);rect(c,x-31f,46f,x+31f,444f,pane,edge);val top=58f;val bot=426f
- for(i in 0..4){val yy=bot-(bot-top)*i/4f;set(mute);c.drawLine(x-39f,yy,x-32f,yy,p);txt(c,"${i*25}",x-58f,yy+4f,9f,mute)}
- val fy=bot-(bot-top)*percent/100f;rect(c,x-19f,top,x+19f,bot,Color.rgb(12,17,21));rect(c,x-19f,fy,x+19f,bot,col);set(white,1.2f,Paint.Style.STROKE);c.drawRoundRect(RectF(x-19f,top,x+19f,bot),3f,3f,p);rect(c,x-29f,390f,x+29f,416f,Color.rgb(12,17,21),edge);txt(c,"$percent%",x-22f,408f,13f,white,true)}
+
+class MainActivity : Activity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        window.decorView.systemUiVisibility =
+            5894 or 1024 or 512 or 4096
+        setContentView(Hmi(this))
+    }
+}
+
+class Hmi(ctx: Context) : View(ctx) {
+
+    private val p = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    private val bg = Color.rgb(16, 22, 27)
+    private val pane = Color.rgb(27, 36, 43)
+    private val edge = Color.rgb(76, 94, 104)
+    private val white = Color.rgb(231, 238, 241)
+    private val mute = Color.rgb(139, 157, 166)
+    private val teal = Color.rgb(65, 174, 157)
+    private val blue = Color.rgb(25, 158, 190)
+    private val dark = Color.rgb(10, 16, 20)
+
+    private fun paint(
+        color: Int,
+        stroke: Float = 1f,
+        style: Paint.Style = Paint.Style.FILL
+    ) {
+        p.color = color
+        p.strokeWidth = stroke
+        p.style = style
+        p.strokeCap = Paint.Cap.ROUND
+    }
+
+    private fun text(
+        c: Canvas,
+        s: String,
+        x: Float,
+        y: Float,
+        size: Float,
+        color: Int,
+        bold: Boolean = false
+    ) {
+        paint(color)
+        p.textSize = size
+        p.typeface = if (bold)
+            Typeface.create("sans-serif", Typeface.BOLD)
+        else
+            Typeface.create("sans-serif", Typeface.NORMAL)
+
+        c.drawText(s, x, y, p)
+    }
+
+    private fun centeredText(
+        c: Canvas,
+        s: String,
+        x: Float,
+        y: Float,
+        size: Float,
+        color: Int,
+        bold: Boolean = false
+    ) {
+        paint(color)
+        p.textSize = size
+        p.typeface = if (bold)
+            Typeface.DEFAULT_BOLD
+        else
+            Typeface.DEFAULT
+
+        c.drawText(s, x - p.measureText(s) / 2f, y, p)
+    }
+
+    private fun rect(
+        c: Canvas,
+        l: Float,
+        t: Float,
+        r: Float,
+        b: Float,
+        color: Int,
+        border: Int? = null,
+        radius: Float = 6f
+    ) {
+        paint(color)
+        c.drawRoundRect(RectF(l, t, r, b), radius, radius, p)
+
+        if (border != null) {
+            paint(border, 1.5f, Paint.Style.STROKE)
+            c.drawRoundRect(RectF(l, t, r, b), radius, radius, p)
+        }
+    }
+
+    override fun onDraw(c: Canvas) {
+        super.onDraw(c)
+
+        c.save()
+        c.scale(width / 800f, height / 480f)
+        c.drawColor(bg)
+
+        // HEADER
+        rect(c, 8f, 7f, 792f, 39f, pane, edge, 8f)
+
+        text(c, "14:37:25", 22f, 29f, 17f, white, true)
+        centeredText(c, "SANGINKAR SANAT.CO",
+            400f, 28f, 17f, white, true)
+
+        text(c, "2024-04-30  Tue", 614f, 28f, 13f, mute)
+
+        rect(c, 746f, 13f, 780f, 32f, teal)
+        centeredText(c, "OK", 763f, 27f, 12f, white, true)
+
+        // LEFT: VERTICAL GAUGE
+        verticalGauge(
+            c,
+            155f,
+            258f,
+            130f,
+            -90,
+            90,
+            0f
+        )
+
+        // CENTER: FULL 360 DEGREE GAUGE
+        horizontalGauge(
+            c,
+            455f,
+            239f,
+            151f,
+            0f
+        )
+
+        // RIGHT: LEVEL INDICATORS
+        level(c, 660f, "WATER", 75, blue)
+        level(c, 754f, "FOAM", 50, teal)
+
+        // BOTTOM STATUS
+        rect(c, 10f, 458f, 790f, 474f, pane, edge, 7f)
+
+        text(c, "SYSTEM READY", 22f, 470f,
+            10f, teal, true)
+
+        text(c, "DEMO VALUES", 674f, 470f,
+            10f, mute, true)
+
+        c.restore()
+    }
+
+    // --------------------------------
+    // VERTICAL GAUGE: -90 TO +90
+    // --------------------------------
+
+    private fun verticalGauge(
+        c: Canvas,
+        x: Float,
+        y: Float,
+        r: Float,
+        min: Int,
+        max: Int,
+        value: Float
+    ) {
+        rect(c, 12f, 48f, 294f, 449f, pane, edge)
+
+        centeredText(c, "VERTICAL ANGLE",
+            x, 68f, 13f, white, true)
+
+        // Upper semicircle
+        val radius = r - 8f
+        val arc = RectF(
+            x - radius,
+            y - radius,
+            x + radius,
+            y + radius
+        )
+
+        paint(edge, 2f, Paint.Style.STROKE)
+        c.drawArc(arc, 180f, 180f, false, p)
+
+        // Uniform scale and ticks
+        for (i in 0..12) {
+
+            val angle = Math.toRadians(180.0 + i * 15.0)
+
+            val major = i % 2 == 0
+
+            val inner = if (major) r - 27f else r - 18f
+            val outer = r - 7f
+
+            val x1 = x + cos(angle).toFloat() * inner
+            val y1 = y + sin(angle).toFloat() * inner
+
+            val x2 = x + cos(angle).toFloat() * outer
+            val y2 = y + sin(angle).toFloat() * outer
+
+            paint(
+                if (major) white else mute,
+                if (major) 2.2f else 1.1f
+            )
+
+            c.drawLine(x1, y1, x2, y2, p)
+
+            if (major) {
+                val v = min + (max - min) * i / 12
+                val labelRadius = r - 48f
+
+                val lx = x + cos(angle).toFloat() * labelRadius
+                val ly = y + sin(angle).toFloat() * labelRadius
+
+                centeredText(
+                    c,
+                    v.toString(),
+                    lx,
+                    ly + 4f,
+                    11f,
+                    mute
+                )
+            }
+        }
+
+        // Needle: zero points upward
+        val needleAngle = Math.toRadians(
+            270.0 + value.coerceIn(-90f, 90f)
+        )
+
+        paint(teal, 4f)
+
+        c.drawLine(
+            x, y,
+            x + cos(needleAngle).toFloat() * (r - 40f),
+            y + sin(needleAngle).toFloat() * (r - 40f),
+            p
+        )
+
+        paint(white)
+        c.drawCircle(x, y, 8f, p)
+
+        paint(dark)
+        c.drawCircle(x, y, 3f, p)
+
+        // Digital value
+        rect(c, x - 49f, y + 35f,
+            x + 49f, y + 67f, dark, edge)
+
+        centeredText(
+            c,
+            "%.1f°".format(value),
+            x,
+            y + 57f,
+            18f,
+            white,
+            true
+        )
+
+        rect(c, x - 65f, 414f,
+            x + 65f, 438f, pane, edge)
+
+        centeredText(c, "VERTICAL",
+            x, 431f, 12f, white, true)
+    }
+
+    // --------------------------------
+    // HORIZONTAL GAUGE: 0 TO 360
+    // --------------------------------
+
+    private fun horizontalGauge(
+        c: Canvas,
+        x: Float,
+        y: Float,
+        r: Float,
+        value: Float
+    ) {
+        rect(c, 301f, 48f, 615f, 449f, pane, edge)
+
+        centeredText(c, "HORIZONTAL ANGLE",
+            x, 68f, 13f, white, true)
+
+        val radius = r - 7f
+
+        val arc = RectF(
+            x - radius,
+            y - radius,
+            x + radius,
+            y + radius
+        )
+
+        // Complete 360-degree scale
+        paint(teal, 6f, Paint.Style.STROKE)
+        c.drawCircle(x, y, radius, p)
+
+        // 36 divisions, every 10 degrees
+        for (i in 0 until 36) {
+
+            val degree = i * 10
+            val angle = Math.toRadians(
+                (degree - 90).toDouble()
+            )
+
+            val major = degree % 30 == 0
+
+            val inner = if (major) r - 29f else r - 17f
+            val outer = r - 6f
+
+            val x1 = x + cos(angle).toFloat() * inner
+            val y1 = y + sin(angle).toFloat() * inner
+
+            val x2 = x + cos(angle).toFloat() * outer
+            val y2 = y + sin(angle).toFloat() * outer
+
+            paint(
+                if (major) white else mute,
+                if (major) 2.2f else 1.1f
+            )
+
+            c.drawLine(x1, y1, x2, y2, p)
+
+            if (major) {
+
+                val label = if (degree == 0)
+                    "0/360"
+                else
+                    degree.toString()
+
+                val labelRadius = r - 48f
+
+                val lx = x + cos(angle).toFloat() * labelRadius
+                val ly = y + sin(angle).toFloat() * labelRadius
+
+                centeredText(
+                    c,
+                    label,
+                    lx,
+                    ly + 4f,
+                    10f,
+                    mute
+                )
+            }
+        }
+
+        // Needle: zero at top, clockwise increasing
+        val needleAngle = Math.toRadians(
+            (value - 90.0)
+        )
+
+        paint(teal, 4f)
+
+        c.drawLine(
+            x,
+            y,
+            x + cos(needleAngle).toFloat() * (r - 43f),
+            y + sin(needleAngle).toFloat() * (r - 43f),
+            p
+        )
+
+        paint(white)
+        c.drawCircle(x, y, 9f, p)
+
+        paint(dark)
+        c.drawCircle(x, y, 3.5f, p)
+
+        // Digital value
+        rect(c, x - 50f, y + 28f,
+            x + 50f, y + 61f, dark, edge)
+
+        centeredText(
+            c,
+            "%.1f°".format(value),
+            x,
+            y + 51f,
+            19f,
+            white,
+            true
+        )
+
+        rect(c, x - 70f, 414f,
+            x + 70f, 438f, pane, edge)
+
+        centeredText(c, "HORIZONTAL",
+            x, 431f, 12f, white, true)
+    }
+
+    // --------------------------------
+    // WATER / FOAM LEVEL INDICATORS
+    // --------------------------------
+
+    private fun level(
+        c: Canvas,
+        x: Float,
+        title: String,
+        percent: Int,
+        color: Int
+    ) {
+        centeredText(c, title,
+            x, 58f, 12f, white, true)
+
+        rect(c, x - 36f, 70f,
+            x + 36f, 444f, pane, edge)
+
+        val top = 87f
+        val bottom = 408f
+
+        // Scale
+        for (i in 0..4) {
+
+            val yy = bottom - (bottom - top) * i / 4f
+
+            paint(mute, 1f)
+
+            c.drawLine(
+                x - 40f, yy,
+                x - 35f, yy,
+                p
+            )
+
+            text(
+                c,
+                "${i * 25}",
+                x - 65f,
+                yy + 4f,
+                9f,
+                mute
+            )
+        }
+
+        // Bar background
+        rect(c, x - 19f, top,
+            x + 19f, bottom, dark, white, 4f)
+
+        val safePercent = percent.coerceIn(0, 100)
+
+        val fillY =
+            bottom - (bottom - top) * safePercent / 100f
+
+        rect(
+            c,
+            x - 17f,
+            fillY,
+            x + 17f,
+            bottom,
+            color,
+            null,
+            3f
+        )
+
+        // Percentage display
+        rect(c, x - 31f, 414f,
+            x + 31f, 438f, dark, edge)
+
+        centeredText(
+            c,
+            "$safePercent%",
+            x,
+            431f,
+            13f,
+            white,
+            true
+        )
+    }
 }
