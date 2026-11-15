@@ -6,7 +6,8 @@ import android.os.Bundle
 import android.content.pm.ActivityInfo
 import android.graphics.*
 import android.view.View
-import java.util.Locale
+import android.view.Window
+import android.view.WindowManager
 import kotlin.math.*
 
 class MainActivity : Activity() {
@@ -14,22 +15,26 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        requestedOrientation =
-            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_FULLSCREEN,
+            WindowManager.LayoutParams.FLAG_FULLSCREEN
+        )
         window.decorView.systemUiVisibility =
             (View.SYSTEM_UI_FLAG_FULLSCREEN
                     or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                     or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                    or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                     or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                    or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION)
+                    or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    or View.SYSTEM_UI_FLAG_LAYOUT_STABLE)
 
-        setContentView(Hmi(this))
+        setContentView(Hmi())
     }
 }
 
-class Hmi(context: android.content.Context) : View(context) {
+class Hmi : View(this.context) {
+
+    private val p = Paint(Paint.ANTI_ALIAS_FLAG)
 
     private val bg = Color.rgb(16, 22, 27)
     private val pane = Color.rgb(27, 36, 43)
@@ -40,160 +45,123 @@ class Hmi(context: android.content.Context) : View(context) {
     private val blue = Color.rgb(45, 155, 230)
     private val dark = Color.rgb(8, 13, 17)
 
-    // مقادیر آزمایشی
-    var circularValue = 65f
-    var arcValue = 25f
-    var waterLevel = 72f
-    var foamLevel = 38f
+    private val circularValue = 65f
+    private val arcValue = 25f
+    private val waterLevel = 72f
+    private val foamLevel = 38f
 
-    // ابعاد مشترک دو گیج
-    private val gaugeRadius = 185f
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
 
-    private val circleX = 203f
-    private val arcX = 400f
-    private val gaugeY = 245f
-
-    private fun paint(
-        color: Int,
-        width: Float = 1f,
-        style: Paint.Style = Paint.Style.FILL
-    ): Paint {
-        return Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.color = color
-            strokeWidth = width
-            this.style = style
-            strokeCap = Paint.Cap.ROUND
-        }
-    }
-
-    private fun text(
-        c: Canvas,
-        value: String,
-        x: Float,
-        y: Float,
-        size: Float,
-        color: Int = white,
-        align: Paint.Align = Paint.Align.LEFT
-    ) {
-        val tp = paint(color).apply {
-            textSize = size
-            textAlign = align
-            typeface = Typeface.create(
-                "sans-serif-medium",
-                Typeface.NORMAL
-            )
-        }
-        c.drawText(value, x, y, tp)
-    }
-
-    private fun panel(
-        c: Canvas,
-        l: Float,
-        t: Float,
-        r: Float,
-        b: Float
-    ) {
-        c.drawRoundRect(
-            l, t, r, b, 15f, 15f,
-            paint(dark)
-        )
-
-        c.drawRoundRect(
-            l + 2, t + 2, r - 2, b - 2,
-            13f, 13f,
-            paint(pane)
-        )
-
-        c.drawRoundRect(
-            l, t, r, b, 15f, 15f,
-            paint(edge, 1.5f, Paint.Style.STROKE)
-        )
-    }
-
-    override fun onDraw(c: Canvas) {
-        super.onDraw(c)
-
-        c.save()
-
-        // مقیاس کل رابط برای نمایشگر 800x480
         val sx = width / 800f
         val sy = height / 480f
-        c.scale(sx, sy)
 
-        c.drawColor(bg)
+        canvas.save()
+        canvas.scale(sx, sy)
 
-        // HEADER
-        c.drawRect(
-            0f, 0f, 800f, 43f,
-            paint(Color.rgb(22, 31, 37))
-        )
+        p.style = Paint.Style.FILL
+        p.color = bg
+        canvas.drawRect(0f, 0f, 800f, 480f, p)
 
-        c.drawLine(
-            0f, 43f, 800f, 43f,
-            paint(edge, 1.5f)
-        )
+        drawHeader(canvas)
+        drawPanel(canvas)
 
-        text(
-            c, "INDUSTRIAL CONTROL SYSTEM",
-            22f, 29f, 18f, white
-        )
+        // هر دو صفحه‌گرد دارای شعاع یکسان هستند
+        circularGauge(canvas, 203f, 245f, 195f)
+        rightArcGauge(canvas, 400f, 245f, 195f)
 
-        text(
-            c, "SYSTEM ONLINE",
-            775f, 28f, 13f, teal,
-            Paint.Align.RIGHT
-        )
+        drawLevelColumns(canvas)
+        drawFooter(canvas)
 
-        // پنل اصلی
-        panel(c, 7f, 48f, 600f, 449f)
-
-        // گیج دایره‌ای
-        circularGauge(
-            c, circleX, gaugeY,
-            gaugeRadius, circularValue
-        )
-
-        // گیج قوسی
-        rightArcGauge(
-            c, arcX, gaugeY,
-            gaugeRadius, arcValue
-        )
-
-        // ستون‌های سطح
-        drawLevelColumns(c)
-
-        // FOOTER
-        c.drawRect(
-            0f, 454f, 800f, 480f,
-            paint(Color.rgb(22, 31, 37))
-        )
-
-        c.drawLine(
-            0f, 454f, 800f, 454f,
-            paint(edge, 1f)
-        )
-
-        text(c, "POWER ON", 18f, 473f, 12f, teal)
-
-        text(
-            c, "CONTROLLER READY",
-            400f, 473f, 12f, mute,
-            Paint.Align.CENTER
-        )
-
-        text(
-            c, "24.0 V",
-            780f, 473f, 12f, white,
-            Paint.Align.RIGHT
-        )
-
-        c.restore()
+        canvas.restore()
     }
 
-    // ------------------------------------------------
-    // درجه‌بندی مشترک دو گیج
-    // فاصله تقسیمات و طول خطوط در هر دو یکسان است
-    // ------------------------------------------------
+    private fun drawHeader(c: Canvas) {
+        p.style = Paint.Style.FILL
+        p.color = white
+        p.textSize = 16f
+        p.typeface = Typeface.create("sans-serif", Typeface.BOLD)
+        p.textAlign = Paint.Align.CENTER
+        c.drawText("INDUSTRIAL MONITORING SYSTEM", 400f, 24f, p)
+
+        p.color = teal
+        p.textSize = 11f
+        p.typeface = Typeface.DEFAULT
+        c.drawText("LIVE DATA", 690f, 24f, p)
+    }
+
+    private fun drawPanel(c: Canvas) {
+        p.style = Paint.Style.FILL
+        p.color = pane
+        c.drawRoundRect(5f, 39f, 600f, 452f, 18f, 18f, p)
+
+        p.style = Paint.Style.STROKE
+        p.strokeWidth = 1.5f
+        p.color = edge
+        c.drawRoundRect(5f, 39f, 600f, 452f, 18f, 18f, p)
+    }
+
+    private fun drawFooter(c: Canvas) {
+        p.style = Paint.Style.FILL
+        p.color = mute
+        p.textSize = 11f
+        p.textAlign = Paint.Align.CENTER
+        p.typeface = Typeface.DEFAULT
+        c.drawText("SYSTEM NORMAL     |     SENSOR STATUS: OK", 400f, 471f, p)
+
+        p.color = teal
+        c.drawCircle(590f, 466f, 4f, p)
+    }
+
+    // قاب سه‌بعدی دایره کامل
+    private fun draw3DCircle(c: Canvas, cx: Float, cy: Float, r: Float) {
+        p.style = Paint.Style.STROKE
+
+        p.color = dark
+        p.strokeWidth = 14f
+        c.drawCircle(cx, cy, r, p)
+
+        p.color = Color.rgb(45, 57, 65)
+        p.strokeWidth = 9f
+        c.drawCircle(cx, cy, r - 3f, p)
+
+        p.color = Color.rgb(115, 132, 140)
+        p.strokeWidth = 3f
+        c.drawCircle(cx, cy, r - 8f, p)
+
+        p.color = Color.rgb(20, 29, 35)
+        p.strokeWidth = 2f
+        c.drawCircle(cx, cy, r - 13f, p)
+
+        p.style = Paint.Style.FILL
+    }
+
+    // قاب سه‌بعدی قوس؛ با همان ضخامت و ظاهر قاب دایره
+    private fun draw3DArc(c: Canvas, cx: Float, cy: Float, r: Float) {
+        val oval = RectF(cx - r, cy - r, cx + r, cy + r)
+
+        p.style = Paint.Style.STROKE
+        p.strokeCap = Paint.Cap.ROUND
+
+        p.color = dark
+        p.strokeWidth = 14f
+        c.drawArc(oval, -90f, 120f, false, p)
+
+        p.color = Color.rgb(45, 57, 65)
+        p.strokeWidth = 9f
+        c.drawArc(oval, -90f, 120f, false, p)
+
+        p.color = Color.rgb(115, 132, 140)
+        p.strokeWidth = 3f
+        c.drawArc(oval, -90f, 120f, false, p)
+
+        p.color = Color.rgb(20, 29, 35)
+        p.strokeWidth = 2f
+        c.drawArc(oval, -90f, 120f, false, p)
+
+        p.style = Paint.Style.FILL
+        p.strokeCap = Paint.Cap.BUTT
+    }
 
     private fun drawTicks(
         c: Canvas,
@@ -204,430 +172,260 @@ class Hmi(context: android.content.Context) : View(context) {
         endDegree: Int,
         step: Int
     ) {
-
         var degree = startDegree
 
         while (degree >= endDegree) {
-
             val a = Math.toRadians(-degree.toDouble())
 
-            // درجه‌های اصلی هر 30 درجه
-            val major = degree % 30 == 0
-
             val outerR = r - 20f
-
-            val innerR = if (major) {
-                r - 40f
-            } else {
-                r - 30f
-            }
+            val major = degree % 30 == 0
+            val innerR = if (major) r - 40f else r - 30f
 
             val x1 = cx + cos(a).toFloat() * outerR
             val y1 = cy + sin(a).toFloat() * outerR
-
             val x2 = cx + cos(a).toFloat() * innerR
             val y2 = cy + sin(a).toFloat() * innerR
 
-            c.drawLine(
-                x1, y1, x2, y2,
-                paint(
-                    if (major) white else mute,
-                    if (major) 2.5f else 1.3f
-                )
-            )
+            p.style = Paint.Style.STROKE
+            p.color = if (major) white else mute
+            p.strokeWidth = if (major) 2.5f else 1.3f
+            c.drawLine(x1, y1, x2, y2, p)
 
-            // عددگذاری هر 30 درجه
             if (major) {
-
                 val labelR = r - 58f
+                val tx = cx + cos(a).toFloat() * labelR
+                val ty = cy + sin(a).toFloat() * labelR
 
-                val lx = cx + cos(a).toFloat() * labelR
-                val ly = cy + sin(a).toFloat() * labelR + 5f
+                p.style = Paint.Style.FILL
+                p.color = white
+                p.textSize = 14f
+                p.typeface = Typeface.create("sans-serif", Typeface.BOLD)
+                p.textAlign = Paint.Align.CENTER
 
-                val label = when {
-                    degree > 0 -> "+$degree"
-                    degree < 0 -> "$degree"
-                    else -> "0"
-                }
-
-                text(
-                    c, label, lx, ly,
-                    14f, white, Paint.Align.CENTER
-                )
+                val label = if (degree > 0) "+$degree" else "$degree"
+                c.drawText(label, tx, ty + 5f, p)
             }
 
             degree -= step
         }
+
+        p.style = Paint.Style.FILL
     }
 
-    // ------------------------------------------------
-    // قاب کامل گیج دایره‌ای
-    // ------------------------------------------------
+    private fun circularGauge(c: Canvas, cx: Float, cy: Float, r: Float) {
+        draw3DCircle(c, cx, cy, r)
 
-    private fun circularGauge(
+        p.style = Paint.Style.FILL
+        p.color = Color.rgb(19, 27, 33)
+        c.drawCircle(cx, cy, r - 15f, p)
+
+        // درجه‌بندی مشترک با قوس سمت راست
+        drawTicks(c, cx, cy, r, 170, -180, 10)
+
+        // عقربه
+        val angle = Math.toRadians(-circularValue.toDouble())
+        val needleLength = r - 65f
+        val nx = cx + cos(angle).toFloat() * needleLength
+        val ny = cy + sin(angle).toFloat() * needleLength
+
+        p.style = Paint.Style.STROKE
+        p.strokeWidth = 5f
+        p.strokeCap = Paint.Cap.ROUND
+        p.color = teal
+        c.drawLine(cx, cy, nx, ny, p)
+
+        p.style = Paint.Style.FILL
+        p.color = white
+        c.drawCircle(cx, cy, 9f, p)
+        p.color = teal
+        c.drawCircle(cx, cy, 5f, p)
+
+        // نمایش عدد
+        drawDigitalValue(c, cx, cy + 53f, circularValue, teal)
+    }
+
+    private fun rightArcGauge(c: Canvas, cx: Float, cy: Float, r: Float) {
+        draw3DArc(c, cx, cy, r)
+
+        // سطح داخلی قوس
+        p.style = Paint.Style.STROKE
+        p.color = Color.rgb(19, 27, 33)
+        p.strokeWidth = 1f
+
+        // درجه‌بندی همانند صفحه‌گرد چپ
+        drawTicks(c, cx, cy, r, 90, -30, 10)
+
+        // عقربه قوس
+        val angle = Math.toRadians(-arcValue.toDouble())
+        val needleLength = r - 65f
+        val nx = cx + cos(angle).toFloat() * needleLength
+        val ny = cy + sin(angle).toFloat() * needleLength
+
+        p.style = Paint.Style.STROKE
+        p.strokeWidth = 5f
+        p.strokeCap = Paint.Cap.ROUND
+        p.color = blue
+        c.drawLine(cx, cy, nx, ny, p)
+
+        p.style = Paint.Style.FILL
+        p.color = white
+        c.drawCircle(cx, cy, 9f, p)
+        p.color = blue
+        c.drawCircle(cx, cy, 5f, p)
+
+        drawDigitalValue(c, cx + 57f, cy + 54f, arcValue, blue)
+
+        p.color = mute
+        p.textSize = 11f
+        p.textAlign = Paint.Align.CENTER
+        c.drawText("PRESSURE", cx + 57f, cy + 88f, p)
+    }
+
+    private fun drawDigitalValue(
         c: Canvas,
         cx: Float,
         cy: Float,
-        r: Float,
-        value: Float
-    ) {
-
-        // قاب بیرونی
-        c.drawCircle(
-            cx, cy, r + 8f,
-            paint(Color.rgb(8, 12, 15))
-        )
-
-        c.drawCircle(
-            cx, cy, r + 5f,
-            paint(
-                Color.rgb(112, 129, 137),
-                5f,
-                Paint.Style.STROKE
-            )
-        )
-
-        // صفحه
-        c.drawCircle(
-            cx, cy, r,
-            paint(Color.rgb(13, 21, 27))
-        )
-
-        c.drawCircle(
-            cx, cy, r - 5f,
-            paint(edge, 1.5f, Paint.Style.STROKE)
-        )
-
-        c.drawCircle(
-            cx, cy, r - 15f,
-            paint(
-                Color.rgb(45, 60, 68),
-                1f,
-                Paint.Style.STROKE
-            )
-        )
-
-        // تقسیمات از -180 تا +170
-        drawTicks(
-            c, cx, cy, r,
-            170, -180, 10
-        )
-
-        // عقربه
-        val v = value.coerceIn(-180f, 180f)
-        val a = Math.toRadians(-v.toDouble())
-
-        val nx = cx + cos(a).toFloat() * (r - 55f)
-        val ny = cy + sin(a).toFloat() * (r - 55f)
-
-        c.drawLine(
-            cx, cy, nx, ny,
-            paint(teal, 5f)
-        )
-
-        // محور عقربه
-        c.drawCircle(
-            cx, cy, 12f,
-            paint(Color.rgb(125, 145, 153))
-        )
-
-        c.drawCircle(
-            cx, cy, 7f,
-            paint(teal)
-        )
-
-        // نمایش دیجیتال
-        c.drawRoundRect(
-            cx - 48f, cy + 48f,
-            cx + 48f, cy + 83f,
-            6f, 6f,
-            paint(Color.rgb(3, 12, 16))
-        )
-
-        text(
-            c,
-            String.format(Locale.US, "%+.1f", value),
-            cx, cy + 72f,
-            22f, teal, Paint.Align.CENTER
-        )
-
-        text(
-            c, "MAIN",
-            cx, cy - 112f,
-            13f, mute, Paint.Align.CENTER
-        )
-    }
-
-    // ------------------------------------------------
-    // گیج قوسی سمت راست
-    // +90 تا -30 درجه
-    // ------------------------------------------------
-
-    private fun rightArcGauge(
-        c: Canvas,
-        cx: Float,
-        cy: Float,
-        r: Float,
-        value: Float
-    ) {
-
-        val rect = RectF(
-            cx - r, cy - r,
-            cx + r, cy + r
-        )
-
-        // قاب بیرونی قوس
-        c.drawArc(
-            RectF(
-                cx - r - 7f,
-                cy - r - 7f,
-                cx + r + 7f,
-                cy + r + 7f
-            ),
-            -90f, 120f, false,
-            paint(
-                Color.rgb(8, 12, 15),
-                13f,
-                Paint.Style.STROKE
-            )
-        )
-
-        // قاب فلزی
-        c.drawArc(
-            RectF(
-                cx - r - 4f,
-                cy - r - 4f,
-                cx + r + 4f,
-                cy + r + 4f
-            ),
-            -90f, 120f, false,
-            paint(
-                Color.rgb(112, 129, 137),
-                6f,
-                Paint.Style.STROKE
-            )
-        )
-
-        // خط داخلی
-        c.drawArc(
-            rect,
-            -90f, 120f, false,
-            paint(
-                Color.rgb(45, 60, 68),
-                2f,
-                Paint.Style.STROKE
-            )
-        )
-
-        // همان درجه‌بندی گیج دایره‌ای
-        drawTicks(
-            c, cx, cy, r,
-            90, -30, 10
-        )
-
-        // عقربه
-        val v = value.coerceIn(-30f, 90f)
-        val a = Math.toRadians(-v.toDouble())
-
-        val nx = cx + cos(a).toFloat() * (r - 55f)
-        val ny = cy + sin(a).toFloat() * (r - 55f)
-
-        c.drawLine(
-            cx, cy, nx, ny,
-            paint(teal, 5f)
-        )
-
-        c.drawCircle(
-            cx, cy, 12f,
-            paint(Color.rgb(125, 145, 153))
-        )
-
-        c.drawCircle(
-            cx, cy, 7f,
-            paint(teal)
-        )
-
-        // نمایش دیجیتال
-        c.drawRoundRect(
-            cx + 25f, cy + 35f,
-            cx + 111f, cy + 70f,
-            6f, 6f,
-            paint(Color.rgb(3, 12, 16))
-        )
-
-        text(
-            c,
-            String.format(Locale.US, "%+.1f", value),
-            cx + 68f, cy + 58f,
-            18f, teal, Paint.Align.CENTER
-        )
-
-        text(
-            c, "PRESSURE",
-            cx + 68f, cy + 91f,
-            12f, mute, Paint.Align.CENTER
-        )
-    }
-
-    // ------------------------------------------------
-    // دو ستون سطح با مقیاس مشترک
-    // ------------------------------------------------
-
-    private fun drawLevelColumns(c: Canvas) {
-
-        val leftX = 665f
-        val rightX = 775f
-
-        val top = 105f
-        val bottom = 415f
-
-        val barWidth = 38f
-
-        text(
-            c, "WATER",
-            leftX, 78f, 14f, white,
-            Paint.Align.CENTER
-        )
-
-        text(
-            c, "FOAM",
-            rightX, 78f, 14f, white,
-            Paint.Align.CENTER
-        )
-
-        // بدنه ستون‌ها
-        drawLevelBar(
-            c, leftX, top, bottom,
-            barWidth, waterLevel, blue
-        )
-
-        drawLevelBar(
-            c, rightX, top, bottom,
-            barWidth, foamLevel, teal
-        )
-
-        // چهار خط مرجع مشترک
-        val marks = listOf(
-            Pair(100f, "FULL"),
-            Pair(0.75f, "3/4"),
-            Pair(0.50f, "1/2"),
-            Pair(0f, "EMPTY")
-        )
-
-        for ((ratio, label) in marks) {
-
-            val y = if (ratio == 100f) {
-                top
-            } else {
-                bottom - (bottom - top) * ratio
-            }
-
-            // خط مرجع روی هر دو ستون
-            c.drawLine(
-                leftX - barWidth / 2f - 2f,
-                y,
-                leftX + barWidth / 2f + 2f,
-                y,
-                paint(white, 1.5f)
-            )
-
-            c.drawLine(
-                rightX - barWidth / 2f - 2f,
-                y,
-                rightX + barWidth / 2f + 2f,
-                y,
-                paint(white, 1.5f)
-            )
-
-            // خطوط کوتاه بین ستون‌ها
-            c.drawLine(
-                leftX + barWidth / 2f + 4f,
-                y,
-                697f,
-                y,
-                paint(mute, 1f)
-            )
-
-            c.drawLine(
-                743f,
-                y,
-                rightX - barWidth / 2f - 4f,
-                y,
-                paint(mute, 1f)
-            )
-
-            // برچسب مشترک وسط
-            c.drawRoundRect(
-                697f, y - 10f,
-                743f, y + 10f,
-                3f, 3f,
-                paint(pane)
-            )
-
-            text(
-                c, label,
-                720f, y + 4f,
-                11f, white,
-                Paint.Align.CENTER
-            )
-        }
-
-        // درصدها
-        text(
-            c, "${waterLevel.toInt()}%",
-            leftX, 440f, 13f, blue,
-            Paint.Align.CENTER
-        )
-
-        text(
-            c, "${foamLevel.toInt()}%",
-            rightX, 440f, 13f, teal,
-            Paint.Align.CENTER
-        )
-    }
-
-    // رسم بدنه و پرشدگی ستون
-    private fun drawLevelBar(
-        c: Canvas,
-        x: Float,
-        top: Float,
-        bottom: Float,
-        w: Float,
         value: Float,
         color: Int
     ) {
-
-        // زمینه
+        p.style = Paint.Style.FILL
+        p.color = dark
         c.drawRoundRect(
-            x - w / 2f,
-            top,
-            x + w / 2f,
-            bottom,
-            6f, 6f,
-            paint(Color.rgb(5, 11, 15))
+            cx - 47f, cy - 22f,
+            cx + 47f, cy + 22f,
+            7f, 7f, p
         )
 
-        // سطح پرشدگی
-        val v = value.coerceIn(0f, 100f)
-        val fillHeight = (bottom - top) * v / 100f
-
+        p.style = Paint.Style.STROKE
+        p.strokeWidth = 1.5f
+        p.color = edge
         c.drawRoundRect(
-            x - w / 2f + 4f,
-            bottom - fillHeight,
-            x + w / 2f - 4f,
-            bottom - 4f,
-            3f, 3f,
-            paint(color)
+            cx - 47f, cy - 22f,
+            cx + 47f, cy + 22f,
+            7f, 7f, p
         )
+
+        p.style = Paint.Style.FILL
+        p.color = color
+        p.textSize = 23f
+        p.typeface = Typeface.create("sans-serif", Typeface.BOLD)
+        p.textAlign = Paint.Align.CENTER
+        c.drawText(value.toInt().toString(), cx, cy + 8f, p)
+    }
+
+    private fun drawLevelColumns(c: Canvas) {
+        val top = 105f
+        val bottom = 415f
+        val barWidth = 36f
+
+        // ستون‌ها کمی به هم نزدیک‌تر شده‌اند
+        val waterX = 670f
+        val foamX = 770f
+
+        drawLevelBar(
+            c, waterX, top, bottom, barWidth,
+            waterLevel, blue
+        )
+
+        drawLevelBar(
+            c, foamX, top, bottom, barWidth,
+            foamLevel, teal
+        )
+
+        // برچسب‌های مشترک و خطوط فقط در فاصله بین دو ستون
+        val marks = listOf(
+            1.00f to "FULL",
+            0.75f to "3/4",
+            0.50f to "1/2",
+            0.25f to "1/4",
+            0.00f to "EMPTY"
+        )
+
+        val centerX = (waterX + foamX) / 2f
+        val gapLeft = waterX + barWidth / 2f + 2f
+        val gapRight = foamX - barWidth / 2f - 2f
+
+        for ((ratio, label) in marks) {
+            val y = bottom - (bottom - top) * ratio
+
+            // خطوط کوتاه در فضای خالی بین ستون‌ها
+            p.style = Paint.Style.STROKE
+            p.strokeWidth = 1.2f
+            p.color = mute
+
+            val textHalfWidth = when (label) {
+                "EMPTY" -> 20f
+                "FULL" -> 16f
+                else -> 13f
+            }
+
+            c.drawLine(gapLeft, y, centerX - textHalfWidth - 3f, y, p)
+            c.drawLine(centerX + textHalfWidth + 3f, y, gapRight, y, p)
+
+            // زمینه کوچک برای خوانایی نوشته
+            p.style = Paint.Style.FILL
+            p.color = pane
+            c.drawRect(
+                centerX - textHalfWidth - 2f,
+                y - 10f,
+                centerX + textHalfWidth + 2f,
+                y + 10f,
+                p
+            )
+
+            p.color = white
+            p.textSize = 11f
+            p.typeface = Typeface.create("sans-serif", Typeface.BOLD)
+            p.textAlign = Paint.Align.CENTER
+            c.drawText(label, centerX, y + 4f, p)
+        }
+
+        // عنوان ستون‌ها
+        p.style = Paint.Style.FILL
+        p.color = blue
+        p.textSize = 13f
+        p.textAlign = Paint.Align.CENTER
+        p.typeface = Typeface.create("sans-serif", Typeface.BOLD)
+        c.drawText("WATER", waterX, 87f, p)
+
+        p.color = teal
+        c.drawText("FOAM", foamX, 87f, p)
+
+        // درصدها
+        p.color = white
+        p.textSize = 14f
+        c.drawText("${waterLevel.toInt()}%", waterX, 440f, p)
+        c.drawText("${foamLevel.toInt()}%", foamX, 440f, p)
+    }
+
+    private fun drawLevelBar(
+        c: Canvas,
+        cx: Float,
+        top: Float,
+        bottom: Float,
+        w: Float,
+        level: Float,
+        color: Int
+    ) {
+        val left = cx - w / 2f
+        val right = cx + w / 2f
+
+        // زمینه ستون
+        p.style = Paint.Style.FILL
+        p.color = dark
+        c.drawRoundRect(left, top, right, bottom, 5f, 5f, p)
+
+        // بخش پرشده
+        val fillTop = bottom - (bottom - top) * (level / 100f)
+        p.color = color
+        c.drawRoundRect(left + 3f, fillTop, right - 3f, bottom - 3f, 3f, 3f, p)
 
         // قاب
-        c.drawRoundRect(
-            x - w / 2f,
-            top,
-            x + w / 2f,
-            bottom,
-            6f, 6f,
-            paint(edge, 1.5f, Paint.Style.STROKE)
-        )
+        p.style = Paint.Style.STROKE
+        p.strokeWidth = 1.5f
+        p.color = edge
+        c.drawRoundRect(left, top, right, bottom, 5f, 5f, p)
+
+        p.style = Paint.Style.FILL
     }
 }
