@@ -65,112 +65,69 @@ class Hmi(context: Context) : View(context) {
         p.color = bg
         canvas.drawRect(0f, 0f, 800f, 480f, p)
 
-        drawHeader(canvas)
-        drawPanel(canvas)
-
         // دو صفحه گرد با شعاع یکسان
-        circularGauge(canvas, 203f, 245f, 195f)
-        rightArcGauge(canvas, 400f, 245f, 195f)
-
-        drawLevelColumns(canvas)
-        drawFooter(canvas)
+circularGauge(canvas, 195f, 240f, 185f)
+rightArcGauge(canvas, 410f, 240f, 185f)
+drawLevelColumns(canvas)
 
         canvas.restore()
     }
 
-    private fun drawHeader(c: Canvas) {
-        p.style = Paint.Style.FILL
-        p.color = white
-        p.textSize = 16f
-        p.typeface = Typeface.create("sans-serif", Typeface.BOLD)
-        p.textAlign = Paint.Align.CENTER
-        c.drawText("INDUSTRIAL MONITORING SYSTEM", 400f, 24f, p)
-
-        p.color = teal
-        p.textSize = 11f
-        p.typeface = Typeface.DEFAULT
-        c.drawText("LIVE DATA", 690f, 24f, p)
-    }
-
-    private fun drawPanel(c: Canvas) {
-        p.style = Paint.Style.FILL
-        p.color = pane
-        c.drawRoundRect(5f, 39f, 600f, 452f, 18f, 18f, p)
-
-        p.style = Paint.Style.STROKE
-        p.strokeWidth = 1.5f
-        p.color = edge
-        c.drawRoundRect(5f, 39f, 600f, 452f, 18f, 18f, p)
-
-        p.style = Paint.Style.FILL
-    }
-
-    private fun drawFooter(c: Canvas) {
-        p.style = Paint.Style.FILL
-        p.color = mute
-        p.textSize = 11f
-        p.textAlign = Paint.Align.CENTER
-        p.typeface = Typeface.DEFAULT
-        c.drawText("SYSTEM NORMAL     |     SENSOR STATUS: OK", 400f, 471f, p)
-
-        p.color = teal
-        c.drawCircle(590f, 466f, 4f, p)
-    }
-
-    // قاب سه بعدی دایره کامل
-    private fun draw3DCircle(c: Canvas, cx: Float, cy: Float, r: Float) {
-        p.style = Paint.Style.STROKE
-
-        p.color = dark
-        p.strokeWidth = 14f
-        c.drawCircle(cx, cy, r, p)
-
-        p.color = Color.rgb(45, 57, 65)
-        p.strokeWidth = 9f
-        c.drawCircle(cx, cy, r - 3f, p)
-
-        p.color = Color.rgb(115, 132, 140)
-        p.strokeWidth = 3f
-        c.drawCircle(cx, cy, r - 8f, p)
-
-        p.color = Color.rgb(20, 29, 35)
-        p.strokeWidth = 2f
-        c.drawCircle(cx, cy, r - 13f, p)
-
-        p.style = Paint.Style.FILL
-    }
-
-    // قاب سه بعدی قوس سمت راست
-    private fun draw3DArc(c: Canvas, cx: Float, cy: Float, r: Float) {
+    // قاب سه بعدی مشترک برای دایره و قوس
+    private fun draw3DBezel(
+        c: Canvas,
+        cx: Float,
+        cy: Float,
+        r: Float,
+        startAngle: Float,
+        sweepAngle: Float
+    ) {
         val oval = RectF(
-            cx - r, cy - r,
-            cx + r, cy + r
+            cx - r,
+            cy - r,
+            cx + r,
+            cy + r
         )
 
         p.style = Paint.Style.STROKE
         p.strokeCap = Paint.Cap.ROUND
 
-        p.color = dark
-        p.strokeWidth = 14f
-        c.drawArc(oval, -90f, 120f, false, p)
+        // لایه تیره بیرونی
+        p.color = Color.rgb(5, 9, 12)
+        p.strokeWidth = 16f
+        c.drawArc(oval, startAngle, sweepAngle, false, p)
 
+        // لایه بدنه فلزی
         p.color = Color.rgb(45, 57, 65)
-        p.strokeWidth = 9f
-        c.drawArc(oval, -90f, 120f, false, p)
+        p.strokeWidth = 12f
+        c.drawArc(oval, startAngle, sweepAngle, false, p)
 
-        p.color = Color.rgb(115, 132, 140)
-        p.strokeWidth = 3f
-        c.drawArc(oval, -90f, 120f, false, p)
+        // لبه روشن
+        p.color = Color.rgb(125, 143, 151)
+        p.strokeWidth = 4f
+        c.drawArc(oval, startAngle, sweepAngle, false, p)
 
+        // لبه داخلی تیره
         p.color = Color.rgb(20, 29, 35)
         p.strokeWidth = 2f
-        c.drawArc(oval, -90f, 120f, false, p)
+        c.drawArc(oval, startAngle, sweepAngle, false, p)
+
+        // نوار باریک روشن برای جلوه فلزی
+        p.color = Color.rgb(85, 105, 114)
+        p.strokeWidth = 1.2f
+        c.drawArc(
+            oval,
+            startAngle + 2f,
+            sweepAngle - 4f,
+            false,
+            p
+        )
 
         p.style = Paint.Style.FILL
         p.strokeCap = Paint.Cap.BUTT
     }
 
-    // درجه بندی مشترک برای هر دو صفحه گرد
+    // درجه بندی مشترک دو صفحه گرد
     private fun drawTicks(
         c: Canvas,
         cx: Float,
@@ -186,9 +143,9 @@ class Hmi(context: Context) : View(context) {
 
             val a = Math.toRadians(-degree.toDouble())
 
-            val outerR = r - 20f
+            val outerR = r - 22f
             val major = degree % 30 == 0
-            val innerR = if (major) r - 40f else r - 30f
+            val innerR = if (major) r - 43f else r - 32f
 
             val x1 = cx + cos(a).toFloat() * outerR
             val y1 = cy + sin(a).toFloat() * outerR
@@ -198,19 +155,19 @@ class Hmi(context: Context) : View(context) {
 
             p.style = Paint.Style.STROKE
             p.color = if (major) white else mute
-            p.strokeWidth = if (major) 2.5f else 1.3f
+            p.strokeWidth = if (major) 2.7f else 1.4f
 
             c.drawLine(x1, y1, x2, y2, p)
 
             if (major) {
-                val labelR = r - 58f
+                val labelR = r - 62f
 
                 val tx = cx + cos(a).toFloat() * labelR
                 val ty = cy + sin(a).toFloat() * labelR
 
                 p.style = Paint.Style.FILL
                 p.color = white
-                p.textSize = 14f
+                p.textSize = 15f
                 p.typeface = Typeface.create(
                     "sans-serif",
                     Typeface.BOLD
@@ -235,17 +192,17 @@ class Hmi(context: Context) : View(context) {
         cy: Float,
         r: Float
     ) {
-        draw3DCircle(c, cx, cy, r)
+        draw3DBezel(c, cx, cy, r, 0f, 360f)
 
         p.style = Paint.Style.FILL
         p.color = Color.rgb(19, 27, 33)
-        c.drawCircle(cx, cy, r - 15f, p)
+        c.drawCircle(cx, cy, r - 17f, p)
 
         drawTicks(c, cx, cy, r, 170, -180, 10)
 
         // عقربه
         val angle = Math.toRadians(-circularValue.toDouble())
-        val needleLength = r - 65f
+        val needleLength = r - 70f
 
         val nx = cx + cos(angle).toFloat() * needleLength
         val ny = cy + sin(angle).toFloat() * needleLength
@@ -259,28 +216,29 @@ class Hmi(context: Context) : View(context) {
 
         p.style = Paint.Style.FILL
         p.color = white
-        c.drawCircle(cx, cy, 9f, p)
+        c.drawCircle(cx, cy, 10f, p)
 
         p.color = teal
         c.drawCircle(cx, cy, 5f, p)
 
-        drawDigitalValue(c, cx, cy + 53f, circularValue, teal)
+        drawDigitalValue(c, cx, cy + 65f, circularValue, teal)
     }
 
-    // صفحه گرد قوسی سمت راست
+    // صفحه قوسی سمت راست با قاب سه بعدی مشابه چپ
     private fun rightArcGauge(
         c: Canvas,
         cx: Float,
         cy: Float,
         r: Float
     ) {
-        draw3DArc(c, cx, cy, r)
+        // فقط قوس 120 درجه؛ بدون دایره کامل
+        draw3DBezel(c, cx, cy, r, -90f, 120f)
 
         drawTicks(c, cx, cy, r, 90, -30, 10)
 
         // عقربه
         val angle = Math.toRadians(-arcValue.toDouble())
-        val needleLength = r - 65f
+        val needleLength = r - 70f
 
         val nx = cx + cos(angle).toFloat() * needleLength
         val ny = cy + sin(angle).toFloat() * needleLength
@@ -294,17 +252,12 @@ class Hmi(context: Context) : View(context) {
 
         p.style = Paint.Style.FILL
         p.color = white
-        c.drawCircle(cx, cy, 9f, p)
+        c.drawCircle(cx, cy, 10f, p)
 
         p.color = blue
         c.drawCircle(cx, cy, 5f, p)
 
-        drawDigitalValue(c, cx + 57f, cy + 54f, arcValue, blue)
-
-        p.color = mute
-        p.textSize = 11f
-        p.textAlign = Paint.Align.CENTER
-        c.drawText("PRESSURE", cx + 57f, cy + 88f, p)
+        drawDigitalValue(c, cx + 60f, cy + 65f, arcValue, blue)
     }
 
     // نمایشگر عدد دیجیتال
@@ -319,10 +272,10 @@ class Hmi(context: Context) : View(context) {
         p.color = dark
 
         c.drawRoundRect(
-            cx - 47f,
-            cy - 22f,
-            cx + 47f,
-            cy + 22f,
+            cx - 48f,
+            cy - 23f,
+            cx + 48f,
+            cy + 23f,
             7f,
             7f,
             p
@@ -333,10 +286,10 @@ class Hmi(context: Context) : View(context) {
         p.color = edge
 
         c.drawRoundRect(
-            cx - 47f,
-            cy - 22f,
-            cx + 47f,
-            cy + 22f,
+            cx - 48f,
+            cy - 23f,
+            cx + 48f,
+            cy + 23f,
             7f,
             7f,
             p
@@ -344,7 +297,7 @@ class Hmi(context: Context) : View(context) {
 
         p.style = Paint.Style.FILL
         p.color = color
-        p.textSize = 23f
+        p.textSize = 24f
         p.typeface = Typeface.create(
             "sans-serif",
             Typeface.BOLD
@@ -354,15 +307,18 @@ class Hmi(context: Context) : View(context) {
         c.drawText(value.toInt().toString(), cx, cy + 8f, p)
     }
 
-    // دو ستون سطح آب و فوم
+    // ستون های سطح آب و فوم
     private fun drawLevelColumns(c: Canvas) {
 
-        val top = 105f
-        val bottom = 415f
-        val barWidth = 36f
+        val top = 45f
+        val bottom = 435f
 
-        val waterX = 670f
-        val foamX = 770f
+        // قطر بیشتر ستون ها
+        val barWidth = 48f
+
+        // فاصله دو ستون
+        val waterX = 665f
+        val foamX = 765f
 
         drawLevelBar(
             c, waterX, top, bottom,
@@ -374,7 +330,7 @@ class Hmi(context: Context) : View(context) {
             barWidth, foamLevel, teal
         )
 
-        // نشانگرهای مشترک
+        // نشانگرهای مشترک هر دو ستون
         val marks = listOf(
             1.00f to "FULL",
             0.75f to "3/4",
@@ -385,7 +341,7 @@ class Hmi(context: Context) : View(context) {
 
         val centerX = (waterX + foamX) / 2f
 
-        // خطوط فقط در فضای بین دو ستون
+        // خطوط فقط بین ستون ها
         val gapLeft = waterX + barWidth / 2f + 2f
         val gapRight = foamX - barWidth / 2f - 2f
 
@@ -400,17 +356,23 @@ class Hmi(context: Context) : View(context) {
             }
 
             p.style = Paint.Style.STROKE
-            p.strokeWidth = 1.2f
+            p.strokeWidth = 1.3f
             p.color = mute
 
             c.drawLine(
-                gapLeft, y,
-                centerX - textHalfWidth - 3f, y, p
+                gapLeft,
+                y,
+                centerX - textHalfWidth - 3f,
+                y,
+                p
             )
 
             c.drawLine(
-                centerX + textHalfWidth + 3f, y,
-                gapRight, y, p
+                centerX + textHalfWidth + 3f,
+                y,
+                gapRight,
+                y,
+                p
             )
 
             // زمینه نوشته
@@ -439,30 +401,34 @@ class Hmi(context: Context) : View(context) {
         // عنوان ستون ها
         p.style = Paint.Style.FILL
         p.color = blue
-        p.textSize = 13f
+        p.textSize = 14f
         p.textAlign = Paint.Align.CENTER
         p.typeface = Typeface.create(
             "sans-serif",
             Typeface.BOLD
         )
 
-        c.drawText("WATER", waterX, 87f, p)
+        c.drawText("WATER", waterX, 24f, p)
 
         p.color = teal
-        c.drawText("FOAM", foamX, 87f, p)
+        c.drawText("FOAM", foamX, 24f, p)
 
         // درصدها
         p.color = white
-        p.textSize = 14f
+        p.textSize = 15f
 
         c.drawText(
             "${waterLevel.toInt()}%",
-            waterX, 440f, p
+            waterX,
+            463f,
+            p
         )
 
         c.drawText(
             "${foamLevel.toInt()}%",
-            foamX, 440f, p
+            foamX,
+            463f,
+            p
         )
     }
 
@@ -484,8 +450,13 @@ class Hmi(context: Context) : View(context) {
         p.color = dark
 
         c.drawRoundRect(
-            left, top, right, bottom,
-            5f, 5f, p
+            left,
+            top,
+            right,
+            bottom,
+            6f,
+            6f,
+            p
         )
 
         // بخش پرشده
@@ -499,17 +470,24 @@ class Hmi(context: Context) : View(context) {
             fillTop,
             right - 3f,
             bottom - 3f,
-            3f, 3f, p
+            4f,
+            4f,
+            p
         )
 
         // قاب ستون
         p.style = Paint.Style.STROKE
-        p.strokeWidth = 1.5f
+        p.strokeWidth = 2f
         p.color = edge
 
         c.drawRoundRect(
-            left, top, right, bottom,
-            5f, 5f, p
+            left,
+            top,
+            right,
+            bottom,
+            6f,
+            6f,
+            p
         )
 
         p.style = Paint.Style.FILL
