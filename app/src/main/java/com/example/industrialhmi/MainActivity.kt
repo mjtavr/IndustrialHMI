@@ -45,7 +45,7 @@ class MainActivity : Activity() {
             if (intent?.action == permissionAction) {
 
                 val granted = intent.getBooleanExtra(
-                    UsbManager.EXTRA_PERMISSION_GRANTED,
+                   "permission",
                     false
                 )
 
