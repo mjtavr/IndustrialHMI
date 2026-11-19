@@ -52,12 +52,17 @@ class MainActivity : Activity() {
                 if (granted) {
                     connectUsb()
                 } else {
+                    if (::hmi.isInitialized) hmi.setUsbConnected(false)
                     showMessage("USB permission denied")
                 }
             }
 
             if (intent?.action == UsbManager.ACTION_USB_DEVICE_ATTACHED) {
                 connectUsb()
+            }
+
+            if (intent?.action == UsbManager.ACTION_USB_DEVICE_DETACHED) {
+                closeUsb()
             }
         }
     }
@@ -90,6 +95,7 @@ class MainActivity : Activity() {
         val filter = IntentFilter().apply {
             addAction(permissionAction)
             addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
+            addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
         }
 
         if (Build.VERSION.SDK_INT >= 33) {
@@ -129,7 +135,7 @@ class MainActivity : Activity() {
         }
     }
 
-    // پیدا کردن FT232 و درخواست مجوز USB
+    // پيدا کردن FT232 و درخواست مجوز USB
     private fun connectUsb() {
 
         if (serialPort != null) return
@@ -139,6 +145,7 @@ class MainActivity : Activity() {
                 .findAllDrivers(usbManager)
 
         if (drivers.isEmpty()) {
+            if (::hmi.isInitialized) hmi.setUsbConnected(false)
             return
         }
 
@@ -175,7 +182,7 @@ class MainActivity : Activity() {
         openSerialPort(driver)
     }
 
-    // باز کردن پورت سریال
+    // باز کردن پورت سريال
     private fun openSerialPort(
         driver: com.hoho.android.usbserial.driver.UsbSerialDriver
     ) {
@@ -203,6 +210,7 @@ class MainActivity : Activity() {
 
             usbConnection = connection
             serialPort = port
+            hmi.setUsbConnected(true)
 
             ioManager = SerialInputOutputManager(
                 port,
@@ -252,9 +260,10 @@ class MainActivity : Activity() {
         }
 
         usbConnection = null
+        if (::hmi.isInitialized) hmi.setUsbConnected(false)
     }
 
-    // دریافت اطلاعات؛ ممکن است هر بار فقط بخشی از فریم برسد
+    // دريافت اطلاعات؛ ممکن است هر بار فقط بخشي از فريم برسد
     private fun parseIncoming(data: ByteArray) {
 
         synchronized(rxBuffer) {
@@ -265,7 +274,7 @@ class MainActivity : Activity() {
 
             while (rxBuffer.size >= 15) {
 
-                // پیدا کردن سرآیند AA 55
+                // پيدا کردن سرآيند AA 55
                 if (rxBuffer[0] != 0xAA ||
                     rxBuffer[1] != 0x55) {
 
@@ -297,7 +306,7 @@ class MainActivity : Activity() {
                     continue
                 }
 
-                // استخراج مقادیر علامت دار 16 بیتی
+                // استخراج مقادير علامت دار 16 بيتي
                 val hRaw = signed16(frame[6], frame[7])
                 val vRaw = signed16(frame[8], frame[9])
 
@@ -305,7 +314,7 @@ class MainActivity : Activity() {
                 val foam = frame[11]
                 val status = frame[12]
 
-                // اعتبارسنجی داده ها
+                // اعتبارسنجي داده ها
                 if (hRaw in 0..36000 &&
                     vRaw in -9000..9000 &&
                     water in 0..100 &&
@@ -324,13 +333,13 @@ class MainActivity : Activity() {
                     }
                 }
 
-                // حذف فریم دریافت شده
+                // حذف فريم دريافت شده
                 repeat(15) {
                     rxBuffer.removeAt(0)
                 }
             }
 
-            // جلوگیری از رشد بی نهایت بافر در صورت داده نامعتبر
+            // جلوگيري از رشد بي نهايت بافر در صورت داده نامعتبر
             if (rxBuffer.size > 256) {
                 rxBuffer.clear()
             }
@@ -378,14 +387,21 @@ class Hmi(context: Context) : View(context) {
 
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
 
-    private val bg = Color.rgb(16, 22, 27)
-    private val pane = Color.rgb(27, 36, 43)
-    private val edge = Color.rgb(76, 94, 104)
-    private val white = Color.rgb(230, 237, 240)
-    private val mute = Color.rgb(135, 153, 163)
-    private val teal = Color.rgb(0, 210, 190)
-    private val blue = Color.rgb(45, 155, 230)
-    private val dark = Color.rgb(8, 13, 17)
+    private val bg = Color.rgb(190, 205, 214)
+    private val pane = Color.rgb(31, 44, 53)
+    private val edge = Color.rgb(91, 111, 122)
+    private val white = Color.rgb(235, 242, 246)
+    private val mute = Color.rgb(151, 169, 179)
+    private val teal = Color.rgb(0, 220, 195)
+    private val blue = Color.rgb(55, 165, 245)
+    private val dark = Color.rgb(7, 13, 18)
+
+    @Volatile private var usbConnected = false
+
+    fun setUsbConnected(connected: Boolean) {
+        usbConnected = connected
+        postInvalidate()
+    }
 
     @Volatile private var circularValue = 65f
     @Volatile private var arcValue = 25f
@@ -419,12 +435,47 @@ class Hmi(context: Context) : View(context) {
         p.color = bg
         canvas.drawRect(0f, 0f, 800f, 480f, p)
 
-        circularGauge(canvas, 195f, 240f, 185f)
-        rightArcGauge(canvas, 410f, 240f, 185f)
+        circularGauge(canvas, 200f, 240f, 190f)
+        rightArcGauge(canvas, 415f, 240f, 190f)
 
         drawLevelColumns(canvas)
+        drawConnectionStatus(canvas)
 
         canvas.restore()
+    }
+
+    private fun drawConnectionStatus(c: Canvas) {
+        val left = 320f
+        val top = 8f
+        val right = 510f
+        val bottom = 42f
+
+        p.style = Paint.Style.FILL
+        p.color = Color.rgb(28, 41, 49)
+        c.drawRoundRect(left, top, right, bottom, 9f, 9f, p)
+
+        p.style = Paint.Style.STROKE
+        p.strokeWidth = 1.5f
+        p.color = Color.rgb(95, 117, 128)
+        c.drawRoundRect(left, top, right, bottom, 9f, 9f, p)
+
+        val ledColor = if (usbConnected)
+            Color.rgb(45, 220, 115) else Color.rgb(235, 75, 65)
+
+        p.style = Paint.Style.FILL
+        p.color = Color.rgb(8, 14, 18)
+        c.drawCircle(342f, 25f, 9f, p)
+        p.color = ledColor
+        c.drawCircle(342f, 25f, 5.5f, p)
+
+        p.color = white
+        p.textSize = 14f
+        p.typeface = Typeface.create("sans-serif", Typeface.BOLD)
+        p.textAlign = Paint.Align.LEFT
+        c.drawText(
+            if (usbConnected) "FT232  CONNECTED" else "FT232  DISCONNECTED",
+            358f, 30f, p
+        )
     }
 
     private fun draw3DBezel(
@@ -541,12 +592,22 @@ class Hmi(context: Context) : View(context) {
         draw3DBezel(c, cx, cy, r, 0f, 360f)
 
         p.style = Paint.Style.FILL
-        p.color = Color.rgb(19, 27, 33)
+        p.shader = RadialGradient(
+            cx - 48f, cy - 58f, r + 15f,
+            intArrayOf(
+                Color.rgb(54, 70, 79),
+                Color.rgb(24, 36, 44),
+                Color.rgb(8, 15, 20)
+            ),
+            floatArrayOf(0f, 0.58f, 1f),
+            Shader.TileMode.CLAMP
+        )
         c.drawCircle(cx, cy, r - 17f, p)
+        p.shader = null
 
         drawTicks(c, cx, cy, r, 170, -180, 10)
 
-        // تبدیل زاویه 0..360 به بازه -180..180 برای عقربه
+        // تبديل زاويه 0..360 به بازه -180..180 براي عقربه
         val needleDegree =
             if (circularValue > 180f)
                 circularValue - 360f
@@ -589,11 +650,12 @@ class Hmi(context: Context) : View(context) {
 
         drawTicks(c, cx, cy, r, 90, -30, 10)
 
-        // این قوس از +90 تا -30 درجه نمایش داده می شود
+        // اين قوس از +90 تا -30 درجه نمايش داده مي شود
         val needleDegree = arcValue.coerceIn(-30f, 90f)
 
         val angle = Math.toRadians(-needleDegree.toDouble())
-        val needleLength = r - 70f
+        // Keep the pointer tip clearly inside the scale numbers.
+        val needleLength = r - 92f
 
         val nx = cx + cos(angle).toFloat() * needleLength
         val ny = cy + sin(angle).toFloat() * needleLength
@@ -613,7 +675,7 @@ class Hmi(context: Context) : View(context) {
         c.drawCircle(cx, cy, 5f, p)
 
         drawDigitalValue(
-            c, cx + 60f, cy + 65f,
+            c, cx, cy + 100f,
             arcValue, blue
         )
     }
